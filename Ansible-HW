@@ -1,0 +1,64 @@
+---
+- name: Play 1 - Deploy an Apache webserver on Ubuntu clients
+  hosts: ubuntu_clients
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Apache web server
+      apt:
+        name: apache2
+        state: present
+      ignore_errors: yes
+      register: apache_install
+
+    - name: Debug if Apache install fails
+      debug:
+        msg: "Failed to install apache2: {{ apache_install.stderr }}"
+      when: apache_install.failed
+  
+    - name: Install Apache2 with fix-missing if previous attempt failed
+      apt:
+        name: apache2
+        state: present
+        force_apt_get: yes
+        dpkg_options:
+          - "--force-confdef"
+          - "--force-confold"
+      when: apache_install.failed
+
+    - name: Write a custom message to the Apache index.html
+      copy:
+        dest: /var/www/html/index.html
+        content: "Hello Kendrick from Arslan Using Ansible!"
+
+    - name: Start and enable Apache service
+      service:
+        name: apache2
+        state: started
+        enabled: yes
+
+- name: Play 2 - Install Git on all Ubuntu clients
+  hosts: ubuntu_clients
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Git
+      apt:
+        name: git
+        state: present
+
+- name: Play 3 - Display name on all hosts
+  hosts: all
+  vars:
+    my_name: "Kendrick NewMan"
+  tasks:
+    - name: Show my name
+      debug:
+        msg: "My name is {{ my_name }}"
+        
